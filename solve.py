@@ -29,28 +29,16 @@ async def main():
 ###############################################################################
 
 
-def p32u(x): return struct.pack('I', x)
+def p32(x, sign=False): return struct.pack('i' if sign else 'I', x)
 
 
-def p32s(x): return struct.pack('i', x)
+def p64(x, sign=False): return struct.pack('q' if sign else 'Q', x)
 
 
-def p64u(x): return struct.pack('Q', x)
+def u32(x, sign=False): return struct.unpack('i' if sign else 'I', x)[0]
 
 
-def p64s(x): return struct.pack('q', x)
-
-
-def u32u(x): return struct.unpack('I', x)[0]
-
-
-def u32s(x): return struct.unpack('i', x)[0]
-
-
-def u64u(x): return struct.unpack('Q', x)[0]
-
-
-def u64s(x): return struct.unpack('q', x)[0]
+def u64(x, sign=False): return struct.unpack('q' if sign else 'Q', x)[0]
 
 
 class target():
