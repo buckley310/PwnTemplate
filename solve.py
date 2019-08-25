@@ -45,6 +45,15 @@ class target():
     def __init__(self):
         self.initialized = False
 
+    def __bind_io__(self):
+        self.read = self.reader.read
+        self.readline = self.reader.readline
+        self.readexactly = self.reader.readexactly
+        self.readuntil = self.reader.readuntil
+        self.at_eof = self.reader.at_eof
+        self.write_eof = self.writer.write_eof
+        self.writer_is_closing = self.writer.is_closing
+
     async def tcp_accept(self, host=None, port=1337):
         async def tcp_recv_conn(reader, writer):
             self.reader, self.writer = reader, writer
@@ -54,12 +63,14 @@ class target():
         tcp_accepted = asyncio.Queue()
         async with await asyncio.start_server(tcp_recv_conn, host, port):
             await tcp_accepted.get()
+        self.__bind_io__()
         return self
 
     async def tcp(self, addr, port):
         assert not self.initialized
         self.initialized = True
         self.reader, self.writer = (await asyncio.open_connection(addr, port))
+        self.__bind_io__()
         return self
 
     async def shell(self, cmd):
@@ -70,27 +81,20 @@ class target():
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE)
         self.reader, self.writer = proc.stdout, proc.stdin
+        self.__bind_io__()
         return self
-
-    async def readuntil(self, key):
-        data = b''
-        while not key in data:
-            data += await self.reader.readexactly(1)
-        return data
 
     async def write(self, data):
         self.writer.write(data)
         await self.writer.drain()
 
-    async def read(self, size=-1):
-        if size >= 0:
-            return await self.reader.readexactly(size)
-        else:
-            return await self.reader.read(8192)
+    async def writeline(self, data):
+        self.writer.write(data+b'\n')
+        await self.writer.drain()
 
     async def cat(self):
-        while not self.reader.at_eof():
-            sys.stdout.buffer.write(await self.read())
+        while not self.at_eof():
+            sys.stdout.buffer.write(await self.read(n=8192))
             sys.stdout.buffer.flush()
         os.system('stty sane')
         print("\n\n-- RECEIVED EOF --\n")
@@ -108,7 +112,7 @@ class target():
             loop = asyncio.get_running_loop()
             while True:
                 data = await loop.run_in_executor(None, sys.stdin.buffer.read1)
-                if self.writer.is_closing():
+                if self.writer_is_closing():
                     break
                 await self.write(data)
         if raw:
