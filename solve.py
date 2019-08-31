@@ -92,12 +92,16 @@ class target():
         self.writer.write(data+b'\n')
         await self.writer.drain()
 
-    async def cat(self):
-        while not self.at_eof():
-            sys.stdout.buffer.write(await self.read(n=8192))
-            sys.stdout.buffer.flush()
-        os.system('stty sane')
-        print("\n\n-- RECEIVED EOF --\n")
+    async def cat(self, escape=False):
+        if escape:
+            while not self.at_eof():
+                print(repr(await self.read(n=8192))[2:-1], end='', flush=True)
+        else:
+            while not self.at_eof():
+                sys.stdout.buffer.write(await self.read(n=8192))
+                sys.stdout.buffer.flush()
+            os.system('stty sane')
+            print("\n\n-- RECEIVED EOF --\n")
 
     async def ptyUpgrade(self):
         await self.write(b'\n\n\n')
