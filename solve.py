@@ -53,6 +53,7 @@ class target():
         self.at_eof = self.reader.at_eof
         self.write_eof = self.writer.write_eof
         self.writer_is_closing = self.writer.is_closing
+        self.close = self.writer.close
 
     async def tcp_accept(self, host=None, port=1337):
         async def tcp_recv_conn(reader, writer):
