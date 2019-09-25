@@ -14,7 +14,7 @@ async def main():
     # ---- Interact with a subprocess
     r = await target().shell("/bin/sh")
     await r.ptyUpgrade()
-    await r.write(b'PS1="\\u:\\w$ "\n')
+    await r.writeline(b'PS1="\\u:\\w$ "')
     await r.interact(raw=True)
 
     # ---- interact with an incoming tcp connection, like netcat -l
@@ -43,7 +43,7 @@ def u64(x, sign=False): return struct.unpack('q' if sign else 'Q', x)[0]
 
 class target():
     def __init__(self):
-        self.initialized = False
+        self._initialized = False
 
     def __bind_io__(self):
         self.read = self.reader.read
@@ -58,8 +58,8 @@ class target():
         async def tcp_recv_conn(reader, writer):
             self.reader, self.writer = reader, writer
             await tcp_accepted.put(True)
-        assert not self.initialized
-        self.initialized = True
+        assert not self._initialized
+        self._initialized = True
         tcp_accepted = asyncio.Queue()
         async with await asyncio.start_server(tcp_recv_conn, host, port):
             await tcp_accepted.get()
@@ -67,15 +67,15 @@ class target():
         return self
 
     async def tcp(self, addr, port):
-        assert not self.initialized
-        self.initialized = True
+        assert not self._initialized
+        self._initialized = True
         self.reader, self.writer = (await asyncio.open_connection(addr, port))
         self.__bind_io__()
         return self
 
     async def shell(self, cmd):
-        assert not self.initialized
-        self.initialized = True
+        assert not self._initialized
+        self._initialized = True
         proc = await asyncio.create_subprocess_shell(
             cmd,
             stdin=asyncio.subprocess.PIPE,
@@ -105,12 +105,12 @@ class target():
             print("\n\n-- RECEIVED EOF --\n")
 
     async def ptyUpgrade(self):
-        await self.write(b'\n\n\n')
-        await self.write(b";".join([
+        await self.writeline(b'\n\n\n')
+        await self.writeline(b";".join([
             b""" exec %s -c 'import pty; pty.spawn("/bin/sh")' """ % py
             for py in [b"python", b"python3", b"python2"]
         ]))
-        await self.write(b'\nexec bash\n')
+        await self.writeline(b'exec bash')
 
     async def interact(self, raw=False):
         async def send_keys():
