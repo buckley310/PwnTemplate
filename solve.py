@@ -51,7 +51,6 @@ class target():
         self.readexactly = self.reader.readexactly
         self.readuntil = self.reader.readuntil
         self.at_eof = self.reader.at_eof
-        self.write_eof = self.writer.write_eof
         self.writer_is_closing = self.writer.is_closing
         self.close = self.writer.close
 
