@@ -45,7 +45,7 @@ class target():
     def __init__(self):
         self._initialized = False
 
-    def __bind_io__(self):
+    def _bind_io(self):
         self.read = self.reader.read
         self.readline = self.reader.readline
         self.readexactly = self.reader.readexactly
@@ -63,14 +63,14 @@ class target():
         tcp_accepted = asyncio.Queue()
         async with await asyncio.start_server(tcp_recv_conn, host, port):
             await tcp_accepted.get()
-        self.__bind_io__()
+        self._bind_io()
         return self
 
     async def tcp(self, addr, port):
         assert not self._initialized
         self._initialized = True
         self.reader, self.writer = (await asyncio.open_connection(addr, port))
-        self.__bind_io__()
+        self._bind_io()
         return self
 
     async def shell(self, cmd):
@@ -81,7 +81,7 @@ class target():
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE)
         self.reader, self.writer = proc.stdout, proc.stdin
-        self.__bind_io__()
+        self._bind_io()
         return self
 
     async def write(self, data):
