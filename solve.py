@@ -105,12 +105,12 @@ class target():
             print("\n\n-- RECEIVED EOF --\n")
 
     async def ptyUpgrade(self):
-        await self.writeline(b'\n\n\n')
-        await self.writeline(b";".join([
-            b""" exec %s -c 'import pty; pty.spawn("/bin/sh")' """ % py
-            for py in [b"python", b"python3", b"python2"]
-        ]))
-        await self.writeline(b'exec bash')
+        await asyncio.sleep(1)
+        await self.writeline(b"""
+            for p in python python3 python2;do
+                exec $p -c 'import pty; pty.spawn("/bin/sh")'
+            done
+        """)
 
     async def interact(self, raw=False):
         async def send_keys():
