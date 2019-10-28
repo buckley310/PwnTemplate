@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import os
 import sys
 import struct
+import termios
 import asyncio
 
 
@@ -100,7 +100,7 @@ class target():
             while not self.at_eof():
                 sys.stdout.buffer.write(await self.read(n=8192))
                 sys.stdout.buffer.flush()
-            os.system('stty sane')
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, _pty_orig)
         if verbose:
             print("\n\n-- RECEIVED EOF --\n")
 
@@ -121,8 +121,11 @@ class target():
                     break
                 await self.write(data)
         if raw:
-            os.system('stty -icanon -isig -echo')
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, _pty_raw)
         await asyncio.gather(send_keys(), self.cat(verbose=True))
 
 
+_pty_orig = termios.tcgetattr(sys.stdin.fileno())
+_pty_raw = termios.tcgetattr(sys.stdin.fileno())
+_pty_raw[3] &= ~(termios.ECHO | termios.ISIG | termios.ICANON)
 asyncio.run(main())
