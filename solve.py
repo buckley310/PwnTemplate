@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import sys
 import struct
 import termios
 import asyncio
+from sys import stdin, stdout
 
 
 ###############################################################################
@@ -98,9 +98,9 @@ class target():
                 print(repr(await self.read(n=8192))[2:-1], end='', flush=True)
         else:
             while not self.at_eof():
-                sys.stdout.buffer.write(await self.read(n=8192))
-                sys.stdout.buffer.flush()
-            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, _pty_orig)
+                stdout.buffer.write(await self.read(n=8192))
+                stdout.buffer.flush()
+            termios.tcsetattr(stdin.fileno(), termios.TCSADRAIN, _pty_orig)
         if verbose:
             print("\n\n-- RECEIVED EOF --\n")
 
@@ -116,16 +116,16 @@ class target():
         async def send_keys():
             loop = asyncio.get_running_loop()
             while True:
-                data = await loop.run_in_executor(None, sys.stdin.buffer.read1)
+                data = await loop.run_in_executor(None, stdin.buffer.read1)
                 if self.writer_is_closing():
                     break
                 await self.write(data)
         if raw:
-            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, _pty_raw)
+            termios.tcsetattr(stdin.fileno(), termios.TCSADRAIN, _pty_raw)
         await asyncio.gather(send_keys(), self.cat(verbose=True))
 
 
-_pty_orig = termios.tcgetattr(sys.stdin.fileno())
-_pty_raw = termios.tcgetattr(sys.stdin.fileno())
+_pty_orig = termios.tcgetattr(stdin.fileno())
+_pty_raw = termios.tcgetattr(stdin.fileno())
 _pty_raw[3] &= ~(termios.ECHO | termios.ISIG | termios.ICANON)
 asyncio.run(main())
